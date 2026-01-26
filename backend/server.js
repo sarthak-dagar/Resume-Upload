@@ -14,7 +14,8 @@ const DB_CONFIG = {
     host: process.env.MYSQL_HOST || 'localhost',
     user: process.env.MYSQL_USER || 'root',
     password: process.env.MYSQL_PASSWORD || '',
-    database: process.env.MYSQL_DATABASE || 'resume_upload'
+    database: process.env.MYSQL_DATABASE || 'resume_upload',
+    port: parseInt(process.env.MYSQL_PORT) || 3306
 };
 
 // ---------- MIDDLEWARE ----------
@@ -54,27 +55,28 @@ let db;
 let dbConnected = false;
 
 async function initDatabase() {
-    // Check if database credentials are provided
-    if (!DB_CONFIG.host || !DB_CONFIG.user || !DB_CONFIG.password) {
+    // Check if database credentials are provided via environment variables
+    // Don't try to connect if using default localhost values (means env vars not set)
+    const hasEnvVars = process.env.MYSQL_HOST && process.env.MYSQL_USER && process.env.MYSQL_PASSWORD;
+    const isLocalhost = DB_CONFIG.host === 'localhost' || DB_CONFIG.host === '127.0.0.1' || DB_CONFIG.host === '::1';
+    
+    if (!hasEnvVars || isLocalhost) {
         console.warn('⚠️  Database credentials not configured. Server will start without database.');
-        console.warn('⚠️  Set MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD environment variables.');
+        console.warn('⚠️  Set MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD environment variables in Render dashboard.');
+        console.warn('⚠️  Uploads will be saved to disk but not stored in database.');
         return;
     }
 
     try {
         console.log('🔄 Connecting to database...');
-        const connection = await mysql.createConnection({
-            host: DB_CONFIG.host,
-            user: DB_CONFIG.user,
-            password: DB_CONFIG.password,
-            connectTimeout: 10000 // 10 second timeout
-        });
-
-        await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_CONFIG.database}\``);
-        await connection.end();
-
+        console.log(`   Host: ${DB_CONFIG.host}`);
+        console.log(`   Port: ${DB_CONFIG.port}`);
+        console.log(`   User: ${DB_CONFIG.user}`);
+        console.log(`   Database: ${DB_CONFIG.database}`);
+        // For FreeMySQLHosting, database already exists - connect directly
         db = mysql.createPool({
             host: DB_CONFIG.host,
+            port: DB_CONFIG.port,
             user: DB_CONFIG.user,
             password: DB_CONFIG.password,
             database: DB_CONFIG.database,
