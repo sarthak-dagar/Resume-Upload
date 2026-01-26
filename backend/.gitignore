@@ -1,0 +1,16 @@
+# Environment variables
+.env
+.env.local
+
+# Uploads folder
+uploads/
+*.pdf
+*.doc
+*.docx
+
+# Logs
+*.log
+npm-debug.log*
+
+# Node modules (if installed locally)
+node_modules/

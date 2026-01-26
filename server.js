@@ -6,13 +6,13 @@ const mysql = require('mysql2/promise');
 const os = require('os');
 
 const app = express();
-const PORT = process.env.PORT || 5500;
+const PORT = 5500;
 
 // ---------- DATABASE CONFIG ----------
 const DB_CONFIG = {
     host: process.env.MYSQL_HOST || 'localhost',
     user: process.env.MYSQL_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || '',
+    password: process.env.MYSQL_PASSWORD || 'Sarthak123@,.',
     database: process.env.MYSQL_DATABASE || 'resume_upload'
 };
 
