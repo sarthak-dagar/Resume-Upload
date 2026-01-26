@@ -51,13 +51,23 @@ const upload = multer({
 
 // ---------- DATABASE INIT ----------
 let db;
+let dbConnected = false;
 
 async function initDatabase() {
+    // Check if database credentials are provided
+    if (!DB_CONFIG.host || !DB_CONFIG.user || !DB_CONFIG.password) {
+        console.warn('⚠️  Database credentials not configured. Server will start without database.');
+        console.warn('⚠️  Set MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD environment variables.');
+        return;
+    }
+
     try {
+        console.log('🔄 Connecting to database...');
         const connection = await mysql.createConnection({
             host: DB_CONFIG.host,
             user: DB_CONFIG.user,
-            password: DB_CONFIG.password
+            password: DB_CONFIG.password,
+            connectTimeout: 10000 // 10 second timeout
         });
 
         await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_CONFIG.database}\``);
@@ -69,7 +79,8 @@ async function initDatabase() {
             password: DB_CONFIG.password,
             database: DB_CONFIG.database,
             waitForConnections: true,
-            connectionLimit: 10
+            connectionLimit: 10,
+            connectTimeout: 10000
         });
 
         await db.query(`
@@ -83,10 +94,14 @@ async function initDatabase() {
             )
         `);
 
-        console.log('Database initialized ✅');
+        dbConnected = true;
+        console.log('✅ Database initialized and connected');
     } catch (err) {
-        console.error('Database initialization error:', err);
-        process.exit(1);
+        console.error('❌ Database initialization error:', err.message);
+        console.error('⚠️  Server will start without database. Uploads will be saved but not stored in database.');
+        console.error('⚠️  Please check your database credentials in environment variables.');
+        dbConnected = false;
+        // Don't exit - allow server to start without database
     }
 }
 
@@ -94,7 +109,11 @@ async function initDatabase() {
 
 // Health check
 app.get('/', (req, res) => {
-    res.json({ message: 'Backend running', status: 'ok' });
+    res.json({ 
+        message: 'Backend running', 
+        status: 'ok',
+        database: dbConnected ? 'connected' : 'not connected'
+    });
 });
 
 // Handle resume upload
@@ -117,11 +136,21 @@ app.post('/upload', upload.single('resume'), async (req, res) => {
 
         console.log('New submission:', submission);
 
-        await db.query(
-            `INSERT INTO submissions (name, email, whatsapp, resume_path, submitted_at)
-             VALUES (?, ?, ?, ?, ?)`,
-            [submission.name, submission.email, submission.whatsapp, submission.resumePath, submission.submittedAt]
-        );
+        // Save to database if connected
+        if (dbConnected && db) {
+            try {
+                await db.query(
+                    `INSERT INTO submissions (name, email, whatsapp, resume_path, submitted_at)
+                     VALUES (?, ?, ?, ?, ?)`,
+                    [submission.name, submission.email, submission.whatsapp, submission.resumePath, submission.submittedAt]
+                );
+                console.log('✅ Saved to database');
+            } catch (dbErr) {
+                console.error('⚠️  Database save failed, but file is saved:', dbErr.message);
+            }
+        } else {
+            console.log('⚠️  Database not connected - file saved but not stored in database');
+        }
 
         res.json({
             success: true,
