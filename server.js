@@ -12,7 +12,7 @@ const PORT = 5500;
 
 // ---------- DATABASE CONFIG ----------
 const DB_CONFIG = {
-    host: process.env.MYSQL_HOST || 'mysql://root:bqdQuIqBNOucqiUzaCDShpYnYXBqqlhN@centerbeam.proxy.rlwy.net:42945/railway',
+    host: process.env.MYSQL_HOST || 'centerbeam.proxy.rlwy.net',
     user: process.env.MYSQL_USER || 'root',
     password: process.env.MYSQL_PASSWORD || 'bqdQuIqBNOucqiUzaCDShpYnYXBqqlhN',
     database: process.env.MYSQL_DATABASE || 'railway',
