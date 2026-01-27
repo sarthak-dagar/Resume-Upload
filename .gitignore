@@ -6,6 +6,7 @@ package-lock.json
 .env
 .env.local
 .env.production
+.env.*
 
 # Uploads folder (contains user data)
 uploads/
@@ -35,3 +36,5 @@ backend_temp_*/
 # Build files
 dist/
 build/
+
+uploads
