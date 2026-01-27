@@ -11,11 +11,11 @@ const PORT = process.env.PORT || 5000;
 
 // ---------- DATABASE CONFIG ----------
 const DB_CONFIG = {
-    host: process.env.MYSQL_HOST || 'localhost',
+    host: process.env.MYSQL_HOST || 'mysql://root:bqdQuIqBNOucqiUzaCDShpYnYXBqqlhN@centerbeam.proxy.rlwy.net:42945/railway',
     user: process.env.MYSQL_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || '',
-    database: process.env.MYSQL_DATABASE || 'resume_upload',
-    port: parseInt(process.env.MYSQL_PORT) || 3306
+    password: process.env.MYSQL_PASSWORD || 'bqdQuIqBNOucqiUzaCDShpYnYXBqqlhN',
+    database: process.env.MYSQL_DATABASE || 'railway',
+    port: parseInt(process.env.MYSQL_PORT) || 42945
 };
 
 // ---------- MIDDLEWARE ----------
@@ -55,57 +55,36 @@ let db;
 let dbConnected = false;
 
 async function initDatabase() {
-    // Check if database credentials are provided via environment variables
-    // Don't try to connect if using default localhost values (means env vars not set)
-    const hasEnvVars = process.env.MYSQL_HOST && process.env.MYSQL_USER && process.env.MYSQL_PASSWORD;
-    const isLocalhost = DB_CONFIG.host === 'localhost' || DB_CONFIG.host === '127.0.0.1' || DB_CONFIG.host === '::1';
-    
-    if (!hasEnvVars || isLocalhost) {
-        console.warn('⚠️  Database credentials not configured. Server will start without database.');
-        console.warn('⚠️  Set MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD environment variables in Render dashboard.');
-        console.warn('⚠️  Uploads will be saved to disk but not stored in database.');
-        return;
-    }
+  if (!DB_CONFIG.host || !DB_CONFIG.user || !DB_CONFIG.password || !DB_CONFIG.database) {
+    console.warn('⚠️ Database env vars missing. Skipping DB connection.');
+    return;
+  }
 
-    try {
-        console.log('🔄 Connecting to database...');
-        console.log(`   Host: ${DB_CONFIG.host}`);
-        console.log(`   Port: ${DB_CONFIG.port}`);
-        console.log(`   User: ${DB_CONFIG.user}`);
-        console.log(`   Database: ${DB_CONFIG.database}`);
-        // For FreeMySQLHosting, database already exists - connect directly
-        db = mysql.createPool({
-            host: DB_CONFIG.host,
-            port: DB_CONFIG.port,
-            user: DB_CONFIG.user,
-            password: DB_CONFIG.password,
-            database: DB_CONFIG.database,
-            waitForConnections: true,
-            connectionLimit: 10,
-            connectTimeout: 10000
-        });
+  try {
+    console.log('🔄 Connecting to database...');
 
-        await db.query(`
-            CREATE TABLE IF NOT EXISTS submissions (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                email VARCHAR(255) NOT NULL,
-                whatsapp VARCHAR(50),
-                resume_path VARCHAR(500) NOT NULL,
-                submitted_at DATETIME NOT NULL
-            )
-        `);
+    db = mysql.createPool({
+      host: DB_CONFIG.host,
+      port: DB_CONFIG.port,
+      user: DB_CONFIG.user,
+      password: DB_CONFIG.password,
+      database: DB_CONFIG.database,
+      waitForConnections: true,
+      connectionLimit: 10
+    });
 
-        dbConnected = true;
-        console.log('✅ Database initialized and connected');
-    } catch (err) {
-        console.error('❌ Database initialization error:', err.message);
-        console.error('⚠️  Server will start without database. Uploads will be saved but not stored in database.');
-        console.error('⚠️  Please check your database credentials in environment variables.');
-        dbConnected = false;
-        // Don't exit - allow server to start without database
-    }
+    await db.query('SELECT 1');
+    dbConnected = true;
+
+    console.log('✅ Database connected successfully');
+    console.log(`   Host: ${DB_CONFIG.host}`);
+    console.log(`   Database: ${DB_CONFIG.database}`);
+
+  } catch (err) {
+    console.error('❌ Database connection failed:', err.message);
+  }
 }
+
 
 // ---------- ROUTES ----------
 

@@ -1,3 +1,4 @@
+
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -8,12 +9,14 @@ const os = require('os');
 const app = express();
 const PORT = 5500;
 
+
 // ---------- DATABASE CONFIG ----------
 const DB_CONFIG = {
-    host: process.env.MYSQL_HOST || 'localhost',
+    host: process.env.MYSQL_HOST || 'mysql://root:bqdQuIqBNOucqiUzaCDShpYnYXBqqlhN@centerbeam.proxy.rlwy.net:42945/railway',
     user: process.env.MYSQL_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || 'Sarthak123@,.',
-    database: process.env.MYSQL_DATABASE || 'resume_upload'
+    password: process.env.MYSQL_PASSWORD || 'bqdQuIqBNOucqiUzaCDShpYnYXBqqlhN',
+    database: process.env.MYSQL_DATABASE || 'railway',
+    port: parseInt(process.env.MYSQL_PORT) || 42945
 };
 
 // ---------- CREATE UPLOADS FOLDER IF NOT EXISTS ----------
