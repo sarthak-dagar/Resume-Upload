@@ -7,15 +7,16 @@ const mysql = require('mysql2/promise');
 const os = require('os');
 
 const app = express();
-const PORT = 5500;
+const PORT = process.env.PORT || 5500;
+
 
 
 // ---------- DATABASE CONFIG ----------
 const DB_CONFIG = {
-    host: process.env.MYSQL_HOST ,
-    user: process.env.MYSQL_USER ,
-    password: process.env.MYSQL_PASSWORD ,
-    database: process.env.MYSQL_DATABASE ,
+    host: process.env.MYSQL_HOST,
+    user: process.env.MYSQL_USER,
+    password: process.env.MYSQL_PASSWORD,
+    database: process.env.MYSQL_DATABASE,
     port: parseInt(process.env.MYSQL_PORT)
 };
 
@@ -40,7 +41,7 @@ const fileFilter = (req, file, cb) => {
     else cb(new Error('Only PDF, DOC, and DOCX files are allowed'));
 };
 
-const upload = multer({ 
+const upload = multer({
     storage,
     fileFilter,
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB
@@ -55,18 +56,16 @@ app.use(express.json());
 let db;
 
 async function initDatabase() {
+    if (!DB_CONFIG.host || !DB_CONFIG.user || !DB_CONFIG.password || !DB_CONFIG.database) {
+        console.warn('⚠️ Database env vars missing. Skipping DB connection.');
+        return;
+    }
     try {
-        const connection = await mysql.createConnection({
-            host: DB_CONFIG.host,
-            user: DB_CONFIG.user,
-            password: DB_CONFIG.password
-        });
-
-        await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_CONFIG.database}\``);
-        await connection.end();
+        console.log('🔄 Connecting to database...');
 
         db = mysql.createPool({
             host: DB_CONFIG.host,
+            port: DB_CONFIG.port,
             user: DB_CONFIG.user,
             password: DB_CONFIG.password,
             database: DB_CONFIG.database,
@@ -87,9 +86,11 @@ async function initDatabase() {
 
         console.log('Database initialized ✅');
     } catch (err) {
-        console.error('Database initialization error:', err);
-        process.exit(1);
+        console.error('❌ Database connection failed');
+        console.error(err.message);
+        console.log('⚠️ App is running WITHOUT database');
     }
+    
 }
 
 // ---------- ROUTES ----------
