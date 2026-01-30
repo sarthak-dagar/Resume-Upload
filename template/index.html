@@ -33,7 +33,31 @@
 
                 <button type="submit" class="submit-btn">Submit Resume</button>
             </form>
+            <div id="successMsg" class="success-msg" style="display: none;">
+                <p class="success-text">✓ Your resume is submitted.</p>
+                <p class="success-name">Thank you, <span id="successName"></span>. We'll contact you soon.</p>
+            </div>
+            <div id="errorMsg" class="error-msg-box" style="display: none;">
+                <p>File too large. Maximum size is 15 MB. Please choose a smaller file.</p>
+            </div>
         </div>
     </div>
+    <script>
+        (function() {
+            var params = new URLSearchParams(window.location.search);
+            if (params.get('success') === '1') {
+                var msg = document.getElementById('successMsg');
+                var nameEl = document.getElementById('successName');
+                if (msg && nameEl) {
+                    nameEl.textContent = params.get('name') || '';
+                    msg.style.display = 'block';
+                }
+            }
+            if (params.get('error') === 'filesize') {
+                var err = document.getElementById('errorMsg');
+                if (err) err.style.display = 'block';
+            }
+        })();
+    </script>
 </body>
 </html>

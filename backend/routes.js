@@ -37,21 +37,7 @@ function registerRoutes(app, rootPath) {
                 saveSubmissionToFile(submission);
             }
 
-            res.send(`
-            <html>
-            <head>
-                <style>
-                    body { font-family: Arial; text-align: center; padding: 50px; }
-                    .success { color: #4CAF50; font-size: 24px; }
-                </style>
-            </head>
-            <body>
-                <div class="success">✓ Your resume is submitted.</div>
-                <p>Thank you, ${submission.name}. We'll contact you soon.</p>
-                <a href="/">Submit another resume</a>
-            </body>
-            </html>
-            `);
+            res.redirect('/?success=1&name=' + encodeURIComponent(submission.name || ''));
         } catch (err) {
             console.error('Upload error:', err);
             res.status(500).send('Error uploading resume');

@@ -1,9 +1,10 @@
 const express = require('express');
 const path = require('path');
 const os = require('os');
-
 const { initDatabase } = require('./backend/db');
 const { registerRoutes } = require('./backend/routes');
+const session = require('express-session');
+const { registerAdminRoutes } = require('./backend/admin');
 
 const app = express();
 const PORT = process.env.PORT || 5500;
@@ -12,9 +13,18 @@ const PORT = process.env.PORT || 5500;
 app.use(express.static(__dirname));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'resume-upload-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 24 * 60 * 60 * 1000 }
+}));
 
-// ---------- ROUTES (backend folder) ----------
+// ---------- ROUTES: Resume upload (/, /upload) ----------
 registerRoutes(app, __dirname);
+
+// ---------- ROUTES: Admin login & dashboard (/admin, /admin/dashboard) ----------
+registerAdminRoutes(app, __dirname);
 
 // ---------- SERVER START ----------
 function getLocalIP() {
