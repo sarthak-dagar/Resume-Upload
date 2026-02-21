@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="/style/admin-dashboard.css">
+</head>
+<body>
+    <div class="admin-header">
+        <h1>📋 Admin Dashboard</h1>
+        <div class="admin-buttons">
+            <button class="btn-primary" onclick="alert('Job Posts Management Coming Soon')">Manage Job Posts</button>
+            <a href="/admin/logout" class="btn-danger" style="text-decoration: none;">Logout</a>
+        </div>
+    </div>
+
+    <div class="dashboard-container">
+        <div class="ai-prompt-section">
+            <div>
+                <div class="ai-prompt-title">📊 Resume Summary AI Prompt</div>
+                <div class="ai-prompt-subtitle">AI-powered resume analysis and summary</div>
+            </div>
+            <button class="show-hide-btn" onclick="toggleAI()">Show Hide</button>
+        </div>
+
+        <div id="submissions-content"></div>
+    </div>
+
+    <script>
+        // ---------- CLIENT-SIDE UTILITIES (Browser only) ----------
+        // These functions run in the browser to format data for display
+
+        /**
+         * Extract initials from name for avatar display
+         * Runs in: Browser (admin dashboard)
+         */
+        const getInitials = (name) => name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+        /**
+         * Escape HTML to prevent XSS attacks
+         * Runs in: Browser (admin dashboard)
+         */
+        const escapeHtml = (text) => {
+            if (!text) return '';
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        };
+
+        /**
+         * Format date to readable string
+         * Runs in: Browser (admin dashboard)
+         */
+        const formatDate = (dateStr) => new Date(dateStr).toLocaleString();
+
+        /**
+         * Extract filename from path
+         * Runs in: Browser (admin dashboard)
+         */
+        const getFileName = (path) => path.split('/').pop();
+
+        /**
+         * Toggle AI feature (placeholder)
+         */
+        function toggleAI() {
+            alert('AI Resume Analyzer is being set up. Configure your API key to enable this feature.');
+        }
+
+        // ---------- BROWSER SCRIPT: FETCH AND DISPLAY SUBMISSIONS ----------
+        /**
+         * This script runs ONLY in the browser (admin dashboard)
+         * It fetches submission data from the server and displays it
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Dashboard loaded, fetching submissions...');
+            fetch('/api/admin/submissions', {
+                method: 'GET',
+                credentials: 'include'  // Include cookies/session
+            })
+                .then(res => {
+                    console.log('Response status:', res.status);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
+                .then(submissions => {
+                    console.log('Submissions received:', submissions);
+
+                    const content = document.getElementById('submissions-content');
+                    
+                    // If no submissions, show empty state
+                    if (submissions.length === 0) {
+                        content.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📭</div>
+                                <h2>No submissions yet</h2>
+                                <p>Resumes submitted by candidates will appear here</p>
+                            </div>
+                        `;
+                    } else {
+                        // Create card for each submission
+                        content.innerHTML = `
+                            <div class="submissions-wrapper">
+                                ${submissions.map(s => `
+                                    <div class="submission-card">
+                                        <div class="card-header">
+                                            <div class="avatar">${getInitials(s.name)}</div>
+                                            <div class="card-name-info">
+                                                <div class="card-name">${escapeHtml(s.name)}</div>
+                                                <div class="card-contact">Email: ${escapeHtml(s.email)}</div>
+                                                <div class="card-contact">Phone: ${escapeHtml(s.whatsapp || '-')}</div>
+                                            </div>
+                                        </div>
+                                        <div class="card-details">
+                                            <div class="detail-item"><span class="detail-label">📧 Email:</span> ${escapeHtml(s.email)}</div>
+                                            <div class="detail-item"><span class="detail-label">📱 WhatsApp:</span> ${escapeHtml(s.whatsapp || '-')}</div>
+                                            <div class="detail-item"><span class="detail-label">📅 Submitted:</span> ${formatDate(s.submitted_at)}</div>
+                                        </div>
+                                        <div class="card-actions">
+                                            ${s.whatsapp ? `<a href="https://wa.me/${s.whatsapp.replace(/\\D/g, '')}" target="_blank" class="whatsapp-btn">💬 WhatsApp</a>` : ''}
+                                            ${s.resume_path ? `<a href="/api/download-resume?file=${encodeURIComponent(getFileName(s.resume_path))}" class="view-resume" download>👁️ View Resume</a>` : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+                })
+                .catch(err => {
+                    console.error('Error loading submissions:', err);
+                    document.getElementById('submissions-content').innerHTML = '<p style="color: red;">❌ Error loading submissions: ' + err.message + '</p>';
+                });
+        });
+    </script>
+</body>
+</html>
