@@ -6,7 +6,9 @@ const multer = require('multer');
 const { initDatabase, insertSubmission, getAllSubmissions } = require('./db');
 const session = require('express-session');
 
-const MongoStore = require('connect-mongo');
+// For production, use a proper session store (MongoDB, Redis, etc.)
+// For development, MemoryStore is used (sessions lost on restart)
+const MemoryStore = require('memorystore')(session);
 
 const app = express();
 const PORT = process.env.PORT || 5500;
@@ -50,11 +52,14 @@ const upload = multer({
 app.use(express.static(__dirname));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+// Session configuration
 app.use(session({
+    store: new MemoryStore(),  // Store sessions in memory (development)
     secret: process.env.SESSION_SECRET || 'resume-upload-secret',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000 }
+    cookie: { maxAge: 24 * 60 * 60 * 1000 }  // 24 hours
 }));
 
 // ---------- ROUTES: Main Page ----------
