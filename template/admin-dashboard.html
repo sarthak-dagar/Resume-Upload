@@ -16,14 +16,6 @@
     </div>
 
     <div class="dashboard-container">
-        <!-- <div class="ai-prompt-section">
-            <div>
-                <div class="ai-prompt-title">📊 Resume Summary AI Prompt</div>
-                <div class="ai-prompt-subtitle">AI-powered resume analysis and summary</div>
-            </div>
-            <button class="show-hide-btn" onclick="toggleAI()">Show Hide</button>
-        </div> -->
-
         <div id="submissions-content"></div>
     </div>
 
@@ -55,15 +47,39 @@
 
         /**
          * Extract filename from path
+         * Works for both Windows ("\") and POSIX ("/") paths
          * Runs in: Browser (admin dashboard)
          */
-        const getFileName = (path) => path.split('/').pop();
+        const getFileName = (p) => {
+            if (!p) return '';
+            return p.split(/[\\/]/).pop();
+        };
 
         /**
-         * Toggle AI feature (placeholder)
+         * Render summary text as bullet points (each sentence on new line)
          */
-        function toggleAI() {
-            alert('AI Resume Analyzer is being set up. Configure your API key to enable this feature.');
+        function renderSummaryPoints(containerEl, text) {
+            const raw = String(text || '').trim();
+            if (!raw) {
+                containerEl.textContent = 'Summary is not available for this resume.';
+                return;
+            }
+
+            const sentences = raw
+                .split(/(?<=[.!?])\s+/)
+                .map(s => s.trim())
+                .filter(Boolean);
+
+            if (!sentences.length) {
+                containerEl.textContent = raw;
+                return;
+            }
+
+            containerEl.innerHTML = `
+                <ul class="summary-list">
+                    ${sentences.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
+                </ul>
+            `;
         }
 
         // ---------- BROWSER SCRIPT: FETCH AND DISPLAY SUBMISSIONS ----------
@@ -101,7 +117,7 @@
                         content.innerHTML = `
                             <div class="submissions-wrapper">
                                 ${submissions.map(s => `
-                                    <div class="submission-card">
+                                    <div class="submission-card" data-submission-id="${s.id}">
                                         <div class="card-header">
                                             <div class="avatar">${getInitials(s.name)}</div>
                                             <div class="card-name-info">
@@ -117,12 +133,67 @@
                                         </div>
                                         <div class="card-actions">
                                             ${s.whatsapp ? `<a href="https://wa.me/${s.whatsapp.replace(/\\D/g, '')}" target="_blank" class="whatsapp-btn">💬 WhatsApp</a>` : ''}
-                                            ${s.resume_path ? `<a href="/api/download-resume?file=${encodeURIComponent(getFileName(s.resume_path))}" class="view-resume" download>👁️ View Resume</a>` : ''}
+                                            ${s.resume_path ? `<a href="/api/download-resume?file=${encodeURIComponent(getFileName(s.resume_path))}" class="view-resume" target="_blank">👁️ View Resume</a>` : ''}
+                                            ${s.id ? `<button class="summary-btn" data-id="${s.id}" data-name="${escapeHtml(s.name)}">🧠 Summary</button>` : ''}
+                                        </div>
+                                        <div class="card-summary" id="summary-${s.id || ''}" style="display: none;">
+                                            <div class="summary-title-row">
+                                                <span class="summary-title-text">🧠 Resume Summary</span>
+                                                <button type="button" class="summary-close-btn" data-id="${s.id}">Close</button>
+                                            </div>
+                                            <div class="summary-body"></div>
                                         </div>
                                     </div>
                                 `).join('')}
                             </div>
                         `;
+
+                        // Attach click handlers for summary buttons (per card)
+                        document.querySelectorAll('.summary-btn').forEach(btn => {
+                            btn.addEventListener('click', () => {
+                                const id = btn.getAttribute('data-id');
+                                const name = btn.getAttribute('data-name') || '';
+                                if (!id) return;
+
+                                const summaryContainer = document.getElementById(`summary-${id}`);
+                                if (!summaryContainer) return;
+                                const bodyEl = summaryContainer.querySelector('.summary-body');
+                                bodyEl.textContent = 'Loading summary...';
+                                summaryContainer.style.display = 'block';
+
+                                fetch(`/api/admin/summary/${encodeURIComponent(id)}`, {
+                                    method: 'GET',
+                                    credentials: 'include'
+                                })
+                                    .then(r => {
+                                        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                                        return r.json();
+                                    })
+                                    .then(data => {
+                                        if (data && data.summary) {
+                                            renderSummaryPoints(bodyEl, data.summary);
+                                        } else {
+                                            bodyEl.textContent = 'Summary is not available for this resume.';
+                                        }
+                                    })
+                                    .catch(err => {
+                                        console.error('Error fetching summary:', err);
+                                        bodyEl.textContent = 'Error fetching summary. Please try again.';
+                                    });
+                            });
+                        });
+
+                        // Attach close handlers for per-card summary
+                        document.querySelectorAll('.summary-close-btn').forEach(btn => {
+                            btn.addEventListener('click', () => {
+                                const id = btn.getAttribute('data-id');
+                                if (!id) return;
+                                const summaryContainer = document.getElementById(`summary-${id}`);
+                                if (summaryContainer) {
+                                    summaryContainer.style.display = 'none';
+                                }
+                            });
+                        });
                     }
                 })
                 .catch(err => {

@@ -244,6 +244,61 @@ body {
     box-shadow: 0 4px 12px rgba(25, 118, 210, 0.15);
 }
 
+/* Per-card resume summary styling */
+.card-summary {
+    margin-top: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #f8f9ff;
+    border: 1px solid #ccd8ff;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    font-size: 13px;
+    color: #333;
+}
+
+.summary-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.summary-title-text {
+    font-weight: 700;
+    color: #3949ab;
+    font-size: 13px;
+}
+
+.summary-close-btn {
+    border: none;
+    background: transparent;
+    color: #777;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.summary-close-btn:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: #333;
+}
+
+.summary-body {
+    line-height: 1.5;
+    white-space: normal;
+}
+
+.summary-list {
+    margin: 0 0 2px 18px;
+    padding-left: 0;
+}
+
+.summary-list li {
+    margin-bottom: 2px;
+}
+
 .empty-state {
     text-align: center;
     padding: 80px 40px;

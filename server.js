@@ -3,6 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const multer = require('multer');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
 const { initDatabase, insertSubmission, getAllSubmissions } = require('./db');
 const session = require('express-session');
 
@@ -47,6 +49,54 @@ const upload = multer({
     fileFilter,
     limits: { fileSize: 15 * 1024 * 1024 } // 15MB
 });
+
+// ---------- HELPERS: Resume Text & Summary ----------
+async function extractTextFromResume(filePath) {
+    const ext = path.extname(filePath).toLowerCase();
+
+    if (!fs.existsSync(filePath)) {
+        return '';
+    }
+
+    try {
+        if (ext === '.pdf') {
+            const dataBuffer = fs.readFileSync(filePath);
+            const data = await pdfParse(dataBuffer);
+            return (data && data.text) || '';
+        }
+
+        if (ext === '.docx') {
+            const result = await mammoth.extractRawText({ path: filePath });
+            return (result && result.value) || '';
+        }
+
+        // For unsupported formats like .doc, just return empty to fallback on metadata summary
+        return '';
+    } catch (e) {
+        console.error('Error extracting resume text:', e);
+        return '';
+    }
+}
+
+function generateSummaryFromText(text, submission) {
+    const baseMeta = [
+        `Candidate ${submission.name || 'Unknown'} has submitted a resume.`,
+        submission.email ? `Primary contact email: ${submission.email}.` : '',
+        submission.whatsapp ? `WhatsApp contact: ${submission.whatsapp}.` : ''
+    ].filter(Boolean).join(' ');
+
+    if (!text) {
+        return baseMeta;
+    }
+
+    const cleaned = text.replace(/\s+/g, ' ').trim();
+    if (!cleaned) return baseMeta;
+
+    const sentences = cleaned.split(/(?<=[.!?])\s+/).slice(0, 3);
+    const contentSummary = sentences.join(' ');
+
+    return `${baseMeta} Resume content highlight: ${contentSummary}`;
+}
 
 // ---------- MIDDLEWARE ----------
 app.use(express.static(__dirname));
@@ -121,10 +171,68 @@ app.get('/api/admin/submissions', requireAdmin, async (req, res) => {
     }
 });
 
-// API endpoint to download resume (protected)
+// API endpoint to get a content-based resume summary for a single submission (protected)
+app.get('/api/admin/summary/:id', requireAdmin, async (req, res) => {
+    try {
+        const submissionId = parseInt(req.params.id, 10);
+        if (Number.isNaN(submissionId)) {
+            return res.status(400).json({ error: 'Invalid submission id' });
+        }
+
+        const submissions = await getAllSubmissions();
+        const submission = submissions.find(s => Number(s.id) === submissionId);
+
+        if (!submission) {
+            return res.status(404).json({ error: 'Submission not found' });
+        }
+
+        const fileName = submission.resume_path
+            ? path.basename(submission.resume_path)
+            : null;
+
+        let resumeFilePath = null;
+        if (fileName) {
+            const candidatePath = path.join(UPLOADS_DIR, fileName);
+            if (candidatePath.startsWith(UPLOADS_DIR) && fs.existsSync(candidatePath)) {
+                resumeFilePath = candidatePath;
+            } else if (submission.resume_path && fs.existsSync(submission.resume_path)) {
+                resumeFilePath = submission.resume_path;
+            }
+        } else if (submission.resume_path && fs.existsSync(submission.resume_path)) {
+            resumeFilePath = submission.resume_path;
+        }
+
+        let extractedText = '';
+        if (resumeFilePath) {
+            extractedText = await extractTextFromResume(resumeFilePath);
+        }
+
+        const submittedAt = submission.submitted_at
+            ? new Date(submission.submitted_at).toLocaleString()
+            : null;
+
+        const summaryText = generateSummaryFromText(extractedText, submission) +
+            (submittedAt ? ` (Submitted on: ${submittedAt})` : '');
+
+        res.json({
+            id: submission.id,
+            name: submission.name,
+            email: submission.email,
+            whatsapp: submission.whatsapp,
+            submitted_at: submission.submitted_at,
+            resume_file: fileName,
+            summary: summaryText
+        });
+    } catch (err) {
+        console.error('Summary API error:', err);
+        res.status(500).json({ error: 'Failed to generate summary' });
+    }
+});
+
+// API endpoint to view resume inline in browser (protected)
 /**
- * Download resume file
- * Query param: file - the filename to download
+ * View resume file (browser will decide to display or download)
+ * Query param: file - the filename to open
  */
 app.get('/api/download-resume', requireAdmin, (req, res) => {
     const filename = req.query.file;
@@ -140,8 +248,15 @@ app.get('/api/download-resume', requireAdmin, (req, res) => {
     if (!fs.existsSync(filePath)) {
         return res.status(404).send('File not found');
     }
-    
-    res.download(filePath);
+
+    const ext = path.extname(filename).toLowerCase();
+
+    // Let browser decide, but hint correct type for PDFs
+    if (ext === '.pdf') {
+        res.type('application/pdf');
+    }
+
+    res.sendFile(filePath);
 });
 
 // ---------- ERROR HANDLER ----------
