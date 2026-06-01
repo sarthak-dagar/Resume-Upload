@@ -261,7 +261,7 @@ app.get('/api/download-resume', requireAdmin, (req, res) => {
 
 // ---------- 404 HANDLER ----------
 app.use((req, res) => {
-    res.status(404).send('404 - Page not found');
+    res.status(404).send('404 - Page not found');    
 });
 
 // ---------- ERROR HANDLER ----------
