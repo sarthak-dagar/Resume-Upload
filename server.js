@@ -259,6 +259,11 @@ app.get('/api/download-resume', requireAdmin, (req, res) => {
     res.sendFile(filePath);
 });
 
+// ---------- 404 HANDLER ----------
+app.use((req, res) => {
+    res.status(404).send('404 - Page not found');
+});
+
 // ---------- ERROR HANDLER ----------
 app.use((err, req, res, next) => {
     if (err.code === 'LIMIT_FILE_SIZE') {
@@ -283,12 +288,14 @@ initDatabase().then(() => {
     const host = '0.0.0.0';
     let port = Number(process.env.PORT) || Number(PORT);
     const maxAttempts = 10;
+    const startTime = new Date().toLocaleString();
 
     function start(attempt = 0) {
         const server = app.listen(port, host, () => {
             const localIP = getLocalIP();
             console.log('\n========================================');
             console.log('✅ Server is running!');
+            console.log(`⏰ Started at: ${startTime}`);
             console.log('========================================');
             console.log(`📍 Local:    http://localhost:${port}`);
             console.log(`📍 Network:  http://${localIP}:${port}`);
