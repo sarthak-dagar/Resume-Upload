@@ -99,7 +99,10 @@ function generateSummaryFromText(text, submission) {
 }
 
 // ---------- MIDDLEWARE ----------
-app.use(express.static(__dirname));
+app.set('trust proxy', 1);
+app.use(express.static(path.join(__dirname, 'template')));
+app.use('/style', express.static(path.join(__dirname, 'style')));
+app.use('/uploads', express.static(UPLOADS_DIR));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
@@ -109,7 +112,11 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'resume-upload-secret',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 24 * 60 * 60 * 1000 }  // 24 hours
+    cookie: {
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+    }
 }));
 
 // ---------- ROUTES: Main Page ----------
