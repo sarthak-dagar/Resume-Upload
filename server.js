@@ -266,6 +266,11 @@ app.get('/api/download-resume', requireAdmin, (req, res) => {
     res.sendFile(filePath);
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', uptime: process.uptime().toFixed(0) + 's' });
+});
+
 // ---------- 404 HANDLER ----------
 app.use((req, res) => {
     res.status(404).send('404 - Page not found');    
