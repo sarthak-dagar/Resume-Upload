@@ -296,7 +296,7 @@ function getLocalIP() {
     return 'localhost';
 }
 
-initDatabase().then(() => {
+initDatabase().then(() => {      
     const host = '0.0.0.0';
     let port = Number(process.env.PORT) || Number(PORT);
     const maxAttempts = 10;
