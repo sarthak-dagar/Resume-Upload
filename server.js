@@ -241,7 +241,7 @@ app.get('/api/admin/summary/:id', requireAdmin, async (req, res) => {
  * View resume file (browser will decide to display or download)
  * Query param: file - the filename to open
  */
-app.get('/api/download-resume', requireAdmin, (req, res) => {
+app.get('/api/download-resume', requireAdmin, (req, res) => {    
     const filename = req.query.file;
     if (!filename) return res.status(400).send('No file specified');
     
