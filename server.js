@@ -243,7 +243,7 @@ app.get('/api/admin/summary/:id', requireAdmin, async (req, res) => {
  */
 app.get('/api/download-resume', requireAdmin, (req, res) => {    
     const filename = req.query.file;
-    if (!filename) return res.status(400).send('No file specified');
+    if (!filename) return res.status(400).send('No file specified');          
     
     const filePath = path.join(UPLOADS_DIR, filename);
     
